@@ -1,0 +1,5 @@
+image:
+  build:
+    name: vbuild
+    dockerfile: Dockerfile.build
+shell: sh
