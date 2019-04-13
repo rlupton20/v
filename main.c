@@ -6,15 +6,14 @@
 
 #include "common.h"
 #include "buffer.h"
-#include "line_buffer.h"
 
 
 typedef int event_t;
 
 
 typedef struct editor_state_t {
-  line_buffer_t *current_line;
-  size_t column;
+  buffer_iter_t *buffer;
+  buffer_iter_t *point;
   bool terminate;
 } editor_state_t;
 
@@ -22,7 +21,6 @@ typedef struct editor_state_t {
 /* Functions for working with editor state */
 editor_state_t* new_editor_state();
 void destroy_editor_state(editor_state_t *state);
-error_t insert_at_point(editor_state_t *const state, const char c);
 
 
 /* Functions for running the editor */
@@ -65,7 +63,7 @@ error_t update(const event_t event, editor_state_t *const state)
     state->terminate = true;
     break;
   default:
-    return insert_at_point(state, event);
+    return insert_character_at_point(state->point, event);
   }
   return SUCCESS;
 }
@@ -75,7 +73,7 @@ void render(const editor_state_t *const state)
 {
   clear();
   render_modeline(state);
-  mvprintw(0, 0, "%s", state->current_line->buffer);
+  mvprintw(0, 0, "%s", current_line(state->point));
   refresh();
 }
 
@@ -83,7 +81,7 @@ void render(const editor_state_t *const state)
 void render_modeline(const editor_state_t *const state)
 {
   attron(A_BOLD);
-  mvprintw(30, 0, "0:%d", state->column);
+  mvprintw(30, 0, "0:%d", column(state->point));
   attroff(A_BOLD);
 }
 
@@ -97,15 +95,15 @@ bool should_quit(const editor_state_t *const state)
 editor_state_t* new_editor_state()
 {
   editor_state_t *state = NULL;
-  line_buffer_t *line_buffer = new_line_buffer(DEFAULT_LINE_BUFFER_LENGTH);
-  if (line_buffer) {
+  buffer_iter_t *const buffer = new_buffer();
+  if (buffer) {
     state = calloc(sizeof(editor_state_t), 1);
     if (state) {
-      state->current_line = line_buffer;
-      state->column = 0;
+      state->buffer = buffer;
+      state->point = buffer;
       state->terminate = false;
     } else {
-      free(line_buffer);
+      destroy_buffer(buffer);
     }
   }
   return state;
@@ -114,13 +112,7 @@ editor_state_t* new_editor_state()
 
 void destroy_editor_state(editor_state_t *state)
 {
-  free(state->current_line);
+  state->point = NULL;
+  destroy_buffer(state->buffer);
   free(state);
 }
-
-
-error_t insert_at_point(editor_state_t *const state, const char c)
-{
-  return insert_character(state->current_line, c, state->column++);
-}
-

@@ -50,6 +50,12 @@ buffer_iter_t* new_buffer()
   return buffer;
 }
 
+void destroy_buffer(buffer_iter_t *buffer)
+{
+  // TODO
+  return;
+}
+
 
 error_t append_line_at_point(buffer_iter_t *const iter) {
   buffer_cell_t *new_cell = new_buffer_cell();
@@ -72,6 +78,18 @@ error_t append_line_at_point(buffer_iter_t *const iter) {
 error_t insert_character_at_point(buffer_iter_t *const iter, char c)
 {
   return insert_character(iter->current->line, c, iter->column++);
+}
+
+
+char* current_line(const buffer_iter_t *const iter)
+{
+  return iter->current->line->buffer;
+}
+
+
+size_t column(const buffer_iter_t *const iter)
+{
+  return iter->column;
 }
 
 
