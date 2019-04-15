@@ -1,16 +1,27 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "buffer.h"
+
+
+// The most a line buffer can expand by
+const size_t default_line_buffer_length = 120;
+const size_t max_buffer_growth = 240;
 
 
 typedef struct buffer_cell_t buffer_cell_t;
 typedef buffer_cell_t* xorptr_t;
 
 
-// Can this be joined with line_buffer ?
+typedef struct line_t {
+  size_t length;
+  char *buffer;
+} line_t;
+
+
 struct buffer_cell_t {
-  line_buffer_t *line;
+  line_t line;
   xorptr_t neighbours;
 };
 
@@ -25,6 +36,13 @@ struct buffer_iter_t {
 
 buffer_cell_t* new_buffer_cell();
 void destroy_buffer_cell(buffer_cell_t *const buffer_cell);
+
+
+error_t allocate_line(line_t *const line);
+void deallocate_line(line_t *const line);
+error_t grow_buffer(line_t *const line);
+error_t insert_character(line_t *const line, const char c, const size_t ix);
+
 
 xorptr_t encode_pair(const buffer_cell_t *const a, const buffer_cell_t *b);
 buffer_cell_t* decode_with(const xorptr_t encoded, const buffer_cell_t *v);
@@ -52,7 +70,7 @@ buffer_iter_t* new_buffer()
 
 void destroy_buffer(buffer_iter_t *buffer)
 {
-  // TODO
+  // TODO - do a bidirectional free
   return;
 }
 
@@ -77,13 +95,13 @@ error_t append_line_at_point(buffer_iter_t *const iter) {
 
 error_t insert_character_at_point(buffer_iter_t *const iter, char c)
 {
-  return insert_character(iter->current->line, c, iter->column++);
+  return insert_character(&iter->current->line, c, iter->column++);
 }
 
 
 char* current_line(const buffer_iter_t *const iter)
 {
-  return iter->current->line->buffer;
+  return iter->current->line.buffer;
 }
 
 
@@ -95,16 +113,15 @@ size_t column(const buffer_iter_t *const iter)
 
 buffer_cell_t* new_buffer_cell()
 {
-  buffer_cell_t *buffer_cell = NULL;
-  line_buffer_t *const line = new_line_buffer(DEFAULT_LINE_BUFFER_LENGTH);
+  buffer_cell_t *buffer_cell = calloc(sizeof(buffer_cell_t), 1);
 
-  if (line) {
-    buffer_cell = calloc(sizeof(buffer_cell_t), 1);
-    if (buffer_cell) {
-      buffer_cell->line = line;
+  if (buffer_cell) {
+    const error_t alloc_ret = allocate_line(&buffer_cell->line);
+    if (alloc_ret == SUCCESS) {
       buffer_cell->neighbours = NULL;
     } else {
-      free(line);
+      free(buffer_cell);
+      buffer_cell = NULL;
     }
   }
 
@@ -114,7 +131,7 @@ buffer_cell_t* new_buffer_cell()
 
 void destroy_buffer_cell(buffer_cell_t *const buffer_cell)
 {
-  destroy_line_buffer(buffer_cell->line);
+  deallocate_line(&buffer_cell->line);
   free(buffer_cell);
 }
 
@@ -128,4 +145,53 @@ xorptr_t encode_pair(const buffer_cell_t *const a, const buffer_cell_t *b)
 buffer_cell_t* decode_with(const xorptr_t encoded, const buffer_cell_t *v)
 {
   return (buffer_cell_t *)((uintptr_t)encoded ^ (uintptr_t)v);
+}
+
+
+/* Functions for handling lines */
+
+error_t allocate_line(line_t *const line)
+{
+  line->buffer = calloc(sizeof(char), default_line_buffer_length);
+
+  if (line->buffer) {
+    line->length = default_line_buffer_length;
+  }
+
+  return line->buffer ? SUCCESS : ALLOC_ERROR;
+}
+
+
+void deallocate_line(line_t *const line)
+{
+  free(line->buffer);
+}
+
+
+error_t grow_buffer(line_t *const line)
+{
+  const size_t new_size =
+    min(max_buffer_growth + line->length, 2 * line->length) + 1;
+
+  char* const new_buffer = realloc(line->buffer, new_size);
+  if (new_buffer) {
+    memset(new_buffer + line->length, 0, new_size - line->length);
+    line->buffer = new_buffer;
+    line->length = new_size - 1;
+  }
+
+  return new_buffer ? SUCCESS : ALLOC_ERROR;
+}
+
+error_t insert_character(line_t *const line, const char c, const size_t ix)
+{
+  if (ix < line->length) {
+    line->buffer[ix] = c;
+    return SUCCESS;
+  } else {
+    const error_t grow_ret = grow_buffer(line);
+    return grow_ret == SUCCESS ?
+      insert_character(line, c, ix) : grow_ret;
+  }
+  return SUCCESS;
 }

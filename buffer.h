@@ -1,6 +1,6 @@
 #pragma once
 
-#include "line_buffer.h"
+#include "common.h"
 
 
 typedef struct buffer_iter_t buffer_iter_t;
