@@ -68,6 +68,7 @@ buffer_iter_t* new_buffer()
   return buffer;
 }
 
+
 void destroy_buffer(buffer_iter_t *buffer)
 {
   // TODO - do a bidirectional free
@@ -111,6 +112,8 @@ size_t column(const buffer_iter_t *const iter)
 }
 
 
+/* Functions for handling buffer cells */
+
 buffer_cell_t* new_buffer_cell()
 {
   buffer_cell_t *buffer_cell = calloc(sizeof(buffer_cell_t), 1);
@@ -152,7 +155,7 @@ buffer_cell_t* decode_with(const xorptr_t encoded, const buffer_cell_t *v)
 
 error_t allocate_line(line_t *const line)
 {
-  line->buffer = calloc(sizeof(char), default_line_buffer_length);
+  line->buffer = calloc(sizeof(char), default_line_buffer_length + 1);
 
   if (line->buffer) {
     line->length = default_line_buffer_length;
@@ -165,33 +168,35 @@ error_t allocate_line(line_t *const line)
 void deallocate_line(line_t *const line)
 {
   free(line->buffer);
+  line->buffer = NULL;
+  line->length = 0;
 }
 
 
 error_t grow_buffer(line_t *const line)
 {
   const size_t new_size =
-    min(max_buffer_growth + line->length, 2 * line->length) + 1;
+    min(max_buffer_growth + line->length, 2 * line->length);
 
-  char* const new_buffer = realloc(line->buffer, new_size);
+  char* const new_buffer = realloc(line->buffer, new_size + 1);
   if (new_buffer) {
-    memset(new_buffer + line->length, 0, new_size - line->length);
+    memset(new_buffer + line->length, 0, new_size - line->length + 1);
     line->buffer = new_buffer;
-    line->length = new_size - 1;
+    line->length = new_size;
   }
 
   return new_buffer ? SUCCESS : ALLOC_ERROR;
 }
+
 
 error_t insert_character(line_t *const line, const char c, const size_t ix)
 {
   if (ix < line->length) {
     line->buffer[ix] = c;
     return SUCCESS;
-  } else {
-    const error_t grow_ret = grow_buffer(line);
-    return grow_ret == SUCCESS ?
-      insert_character(line, c, ix) : grow_ret;
   }
-  return SUCCESS;
+
+  const error_t grow_ret = grow_buffer(line);
+  return grow_ret == SUCCESS ?
+    insert_character(line, c, ix) : grow_ret;
 }
