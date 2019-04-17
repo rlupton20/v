@@ -31,6 +31,7 @@ struct buffer_iter_t {
   buffer_cell_t *next;
   buffer_cell_t *previous;
   size_t column;
+  size_t line;
 };
 
 
@@ -86,6 +87,8 @@ error_t append_line_at_point(buffer_iter_t *const iter) {
       const buffer_cell_t* nexts_next =
         decode_with(iter->next->neighbours, iter->current);
       iter->next->neighbours = encode_pair(new_cell, nexts_next);
+    } else {
+      iter->next = new_cell;
     }
 
   }
@@ -199,4 +202,16 @@ error_t insert_character(line_t *const line, const char c, const size_t ix)
   const error_t grow_ret = grow_buffer(line);
   return grow_ret == SUCCESS ?
     insert_character(line, c, ix) : grow_ret;
+}
+
+
+void move_point_down_line(buffer_iter_t *const iter)
+{
+  if (iter->next) {
+    buffer_cell_t *next_next = decode_with(iter->next->neighbours,
+                                           iter->current);
+    iter->previous = iter->current;
+    iter->current = iter->next;
+    iter->next = next_next;
+  }
 }
