@@ -11,9 +11,15 @@
 struct editor_state_t {
   buffer_iter_t *buffer;
   buffer_iter_t *point;
-  mode_t *mode;
+  const mode_t *mode;
   bool terminate;
 };
+
+
+typedef enum editor_mode_t {
+  NORMAL,
+  INSERT
+} editor_mode_t;
 
 
 /* Functions for working with editor state */
@@ -25,18 +31,21 @@ void destroy_editor_state(editor_state_t *state);
 error_t update(const event_t event, editor_state_t *const state);
 void render(const editor_state_t *const state);
 void render_modeline(const editor_state_t *const state);
+
+/* Editor state functions */
 bool should_quit(const editor_state_t *const state);
+void switch_mode(editor_state_t *const state, editor_mode_t mode);
 
 
-static mode_t normal_mode = (mode_t) {
-                                      .name = "NORMAL",
-                                      .handler = normal_mode_handler
+static const mode_t normal_mode = (mode_t) {
+                                            .name = "NORMAL",
+                                            .handler = normal_mode_handler
 };
 
 
-static mode_t insert_mode = (mode_t) {
-                                      .name = "INSERT",
-                                      .handler = insert_mode_handler
+static const mode_t insert_mode = (mode_t) {
+                                            .name = "INSERT",
+                                            .handler = insert_mode_handler
 };
 
 
@@ -90,12 +99,6 @@ void render_modeline(const editor_state_t *const state)
 }
 
 
-bool should_quit(const editor_state_t *const state)
-{
-  return state->terminate;
-}
-
-
 editor_state_t* new_editor_state()
 {
   editor_state_t *state = NULL;
@@ -106,7 +109,7 @@ editor_state_t* new_editor_state()
       state->buffer = buffer;
       state->point = buffer;
       state->terminate = false;
-      state->mode = &normal_mode;
+      switch_mode(state, NORMAL);
     } else {
       destroy_buffer(buffer);
     }
@@ -127,7 +130,7 @@ error_t insert_mode_handler(event_t event, struct editor_state_t *const state)
 {
   switch (event) {
   case KEY_ESCAPE:
-    state->mode = &normal_mode;
+    switch_mode(state, NORMAL);
     break;
   default:
     return insert_character_at_point(state->point, event);
@@ -140,7 +143,7 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
 {
   switch (event) {
   case 'i':
-    state->mode = &insert_mode;
+    switch_mode(state, INSERT);
     break;
   case 'q':
     state->terminate = true;
@@ -149,4 +152,21 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
     break;
   }
   return SUCCESS;
+}
+
+
+bool should_quit(const editor_state_t *const state)
+{
+  return state->terminate;
+}
+
+
+void switch_mode(editor_state_t *const state, editor_mode_t mode)
+{
+  static const mode_t* editor_modes[] = {
+    [NORMAL] = &normal_mode,
+    [INSERT] = &insert_mode
+  };
+
+  state->mode = editor_modes[mode];
 }
