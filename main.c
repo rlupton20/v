@@ -6,6 +6,7 @@
 
 #include "common.h"
 #include "buffer.h"
+#include "mode.h"
 
 
 struct editor_state_t {
@@ -14,12 +15,6 @@ struct editor_state_t {
   const mode_t *mode;
   bool terminate;
 };
-
-
-typedef enum editor_mode_t {
-  NORMAL,
-  INSERT
-} editor_mode_t;
 
 
 /* Functions for working with editor state */
@@ -35,18 +30,6 @@ void render_modeline(const editor_state_t *const state);
 /* Editor state functions */
 bool should_quit(const editor_state_t *const state);
 void switch_mode(editor_state_t *const state, editor_mode_t mode);
-
-
-static const mode_t normal_mode = (mode_t) {
-                                            .name = "NORMAL",
-                                            .handler = normal_mode_handler
-};
-
-
-static const mode_t insert_mode = (mode_t) {
-                                            .name = "INSERT",
-                                            .handler = insert_mode_handler
-};
 
 
 int main(int argv, char *argc[])
@@ -163,10 +146,5 @@ bool should_quit(const editor_state_t *const state)
 
 void switch_mode(editor_state_t *const state, editor_mode_t mode)
 {
-  static const mode_t* editor_modes[] = {
-    [NORMAL] = &normal_mode,
-    [INSERT] = &insert_mode
-  };
-
-  state->mode = editor_modes[mode];
+  state->mode = get_mode_handle(mode);
 }
