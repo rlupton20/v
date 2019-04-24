@@ -77,6 +77,24 @@ void destroy_buffer(buffer_iter_t *buffer)
 }
 
 
+void destroy_buffer_iter(buffer_iter_t *buffer_iter)
+{
+  free(buffer_iter);
+}
+
+
+error_t copy_buffer_iter(const buffer_iter_t *const src, buffer_iter_t **dst)
+{
+  buffer_iter_t *copy = new_buffer();
+  if (copy) {
+    *dst = copy;
+    *copy = *src;
+  }
+
+  return copy ? SUCCESS : ALLOC_ERROR;
+}
+
+
 error_t append_line_at_point(buffer_iter_t *const iter) {
   buffer_cell_t *new_cell = new_buffer_cell();
 
@@ -205,7 +223,7 @@ error_t insert_character(line_t *const line, const char c, const size_t ix)
 }
 
 
-void move_point_down_line(buffer_iter_t *const iter)
+void move_iter_down_line(buffer_iter_t *const iter)
 {
   if (iter->next) {
     buffer_cell_t *next_next = decode_with(iter->next->neighbours,
@@ -213,5 +231,26 @@ void move_point_down_line(buffer_iter_t *const iter)
     iter->previous = iter->current;
     iter->current = iter->next;
     iter->next = next_next;
+    iter->line++;
   }
+}
+
+
+void move_iter_up_line(buffer_iter_t *const iter)
+{
+  if (iter->previous) {
+    buffer_cell_t *prev_prev = decode_with(iter->previous->neighbours,
+                                           iter->current);
+    iter->next = iter->current;
+    iter->current = iter->previous;
+    iter->previous = prev_prev;
+    iter->line--;
+  }
+}
+
+
+void move_iter_to_top(buffer_iter_t *const iter)
+{
+  while(iter->previous)
+    move_iter_up_line(iter);
 }

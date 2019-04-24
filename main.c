@@ -67,6 +67,7 @@ error_t update(const event_t event, editor_state_t *const state)
 
 void render(const editor_state_t *const state)
 {
+  
   clear();
   render_modeline(state);
   mvprintw(0, 0, "%s", current_line(state->point));
@@ -86,11 +87,13 @@ editor_state_t* new_editor_state()
 {
   editor_state_t *state = NULL;
   buffer_iter_t *const buffer = new_buffer();
-  if (buffer) {
+  buffer_iter_t *point = NULL;
+
+  if (buffer && copy_buffer_iter(buffer, &point) == SUCCESS) {
     state = calloc(sizeof(editor_state_t), 1);
     if (state) {
       state->buffer = buffer;
-      state->point = buffer;
+      state->point = point;
       state->terminate = false;
       switch_mode(state, NORMAL);
     } else {
@@ -104,6 +107,7 @@ editor_state_t* new_editor_state()
 void destroy_editor_state(editor_state_t *state)
 {
   state->point = NULL;
+  destroy_buffer_iter(state->point);
   destroy_buffer(state->buffer);
   free(state);
 }
