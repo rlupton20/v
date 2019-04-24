@@ -100,14 +100,15 @@ error_t append_line_at_point(buffer_iter_t *const iter) {
 
   if (new_cell) {
     new_cell->neighbours = encode_pair(iter->current, iter->next);
+    iter->current->neighbours = encode_pair(iter->previous, new_cell);
 
     if (iter->next) {
       const buffer_cell_t* nexts_next =
         decode_with(iter->next->neighbours, iter->current);
       iter->next->neighbours = encode_pair(new_cell, nexts_next);
-    } else {
-      iter->next = new_cell;
     }
+
+    iter->next = new_cell;
 
   }
 
