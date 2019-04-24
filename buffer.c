@@ -134,6 +134,12 @@ size_t column(const buffer_iter_t *const iter)
 }
 
 
+bool is_last_line(const buffer_iter_t *const iter)
+{
+  return iter->next == NULL;
+}
+
+
 /* Functions for handling buffer cells */
 
 buffer_cell_t* new_buffer_cell()
@@ -254,4 +260,8 @@ void move_iter_to_top(buffer_iter_t *const iter)
 {
   while(iter->previous)
     move_iter_up_line(iter);
+}
+
+void move_to_beginning_of_line(buffer_iter_t *const iter) {
+  iter->column = 0;
 }

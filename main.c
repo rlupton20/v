@@ -30,6 +30,8 @@ void render_modeline(const editor_state_t *const state);
 bool should_quit(const editor_state_t *const state);
 void switch_mode(editor_state_t *const state, editor_mode_t mode);
 
+void open_line(buffer_iter_t *const iter);
+
 
 int main(int argv, char *argc[])
 {
@@ -66,9 +68,27 @@ error_t update(const event_t event, editor_state_t *const state)
 
 void render(const editor_state_t *const state)
 {
+  buffer_iter_t *render_point;
+  copy_buffer_iter(state->point, &render_point);
+  move_iter_to_top(render_point);
+
   clear();
   render_modeline(state);
-  mvprintw(0, 0, "%s", current_line(state->point));
+
+  size_t current = 0;
+  while (true) {
+    mvprintw(current, 0, "%s", current_line(render_point));
+
+    if (is_last_line(render_point)) {
+      break;
+    }
+
+    move_iter_down_line(render_point);
+    current++;
+  }
+
+  destroy_buffer_iter(render_point);
+
   refresh();
 }
 
@@ -128,6 +148,16 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
   case 'i':
     switch_mode(state, INSERT);
     break;
+  case 'j':
+    move_iter_down_line(state->point);
+    break;
+  case 'k':
+    move_iter_up_line(state->point);
+    break;
+  case 'o':
+    open_line(state->point);
+    switch_mode(state, INSERT);
+    break;
   case 'q':
     state->terminate = true;
     break;
@@ -136,6 +166,15 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
   }
   return SUCCESS;
 }
+
+
+void open_line(buffer_iter_t *const iter)
+{
+  append_line_at_point(iter);
+  move_iter_down_line(iter);
+  move_to_beginning_of_line(iter);
+}
+
 
 
 bool should_quit(const editor_state_t *const state)
