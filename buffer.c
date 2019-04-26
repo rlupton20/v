@@ -15,6 +15,7 @@ typedef buffer_cell_t* xorptr_t;
 
 
 typedef struct line_t {
+  size_t used;
   size_t length;
   char *buffer;
 } line_t;
@@ -130,13 +131,18 @@ char* current_line(const buffer_iter_t *const iter)
 
 size_t column(const buffer_iter_t *const iter)
 {
-  return iter->column;
+  return min(iter->column, iter->current->line.used);
 }
 
 
 bool is_last_line(const buffer_iter_t *const iter)
 {
   return iter->next == NULL;
+}
+
+size_t line_number(const buffer_iter_t *const iter)
+{
+  return iter->line;
 }
 
 
@@ -217,10 +223,16 @@ error_t grow_buffer(line_t *const line)
 }
 
 
-error_t insert_character(line_t *const line, const char c, const size_t ix)
+error_t insert_character(line_t *const line, const char c, size_t ix)
 {
-  if (ix < line->length) {
+  ix = min(ix, line->used);
+  if (line->used < line->length) {  // TODO Check
+    // Make space for the new character
+    memmove(line->buffer + ix + 1, line->buffer + ix, line->used - ix);
+
     line->buffer[ix] = c;
+    line->used++;
+
     return SUCCESS;
   }
 
@@ -260,6 +272,16 @@ void move_iter_to_top(buffer_iter_t *const iter)
 {
   while(iter->previous)
     move_iter_up_line(iter);
+}
+
+void move_iter_back_char(buffer_iter_t *const iter) {
+  if (iter->column > 0) {
+    iter->column--;
+  }
+}
+
+void move_iter_forward_char(buffer_iter_t *const iter) {
+  iter->column = min(iter->column + 1, iter->current->line.used);
 }
 
 void move_to_beginning_of_line(buffer_iter_t *const iter) {

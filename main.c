@@ -72,12 +72,18 @@ void render(const editor_state_t *const state)
   copy_buffer_iter(state->point, &render_point);
   move_iter_to_top(render_point);
 
+  size_t row = 0;
+
   clear();
   render_modeline(state);
 
   size_t current = 0;
   while (true) {
     mvprintw(current, 0, "%s", current_line(render_point));
+
+    if (current_line(render_point) == current_line(state->point)) {
+      row = current;
+    }
 
     if (is_last_line(render_point)) {
       break;
@@ -89,6 +95,8 @@ void render(const editor_state_t *const state)
 
   destroy_buffer_iter(render_point);
 
+  move(row, column(state->point));
+
   refresh();
 }
 
@@ -96,7 +104,10 @@ void render(const editor_state_t *const state)
 void render_modeline(const editor_state_t *const state)
 {
   attron(A_BOLD);
-  mvprintw(30, 0, "0:%d\t%s", column(state->point), state->mode->name);
+  mvprintw(30, 0, "%d:%d\t%s",
+           line_number(state->point),
+           column(state->point),
+           state->mode->name);
   attroff(A_BOLD);
 }
 
@@ -148,11 +159,17 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
   case 'i':
     switch_mode(state, INSERT);
     break;
+  case 'h':
+    move_iter_back_char(state->point);
+    break;
   case 'j':
     move_iter_down_line(state->point);
     break;
   case 'k':
     move_iter_up_line(state->point);
+    break;
+  case 'l':
+    move_iter_forward_char(state->point);
     break;
   case 'o':
     open_line(state->point);
