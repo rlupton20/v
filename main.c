@@ -9,9 +9,16 @@
 #include "mode.h"
 
 
+typedef struct window_params_t {
+  size_t height;
+  size_t width;
+} window_params_t;
+
+
 struct editor_state_t {
   buffer_iter_t *point;
   const mode_t *mode;
+  window_params_t win_params;
   bool terminate;
 };
 
@@ -62,6 +69,7 @@ int main(int argv, char *argc[])
 
 error_t update(const event_t event, editor_state_t *const state)
 {
+  getmaxyx(stdscr, state->win_params.height, state->win_params.width);
   return (state->mode->handler)(event, state);
 }
 
@@ -104,10 +112,11 @@ void render(const editor_state_t *const state)
 void render_modeline(const editor_state_t *const state)
 {
   attron(A_BOLD);
-  mvprintw(30, 0, "%d:%d\t%s",
+  mvprintw(state->win_params.height - 2, 0, "%d:%d\t%s\t%d",
            line_number(state->point),
            column(state->point),
-           state->mode->name);
+           state->mode->name,
+           KEY_DC);
   attroff(A_BOLD);
 }
 
@@ -146,8 +155,12 @@ error_t insert_mode_handler(event_t event, struct editor_state_t *const state)
   case KEY_ESCAPE:
     switch_mode(state, NORMAL);
     break;
+  case 127: // TODO Why is this not KEY_BACKSPACE?
+    delete_character_at_point(state->point);
+    break;
   default:
     return insert_character_at_point(state->point, event);
+    break;
   }
   return SUCCESS;
 }

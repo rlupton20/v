@@ -135,14 +135,21 @@ size_t column(const buffer_iter_t *const iter)
 }
 
 
-bool is_last_line(const buffer_iter_t *const iter)
-{
-  return iter->next == NULL;
-}
-
 size_t line_number(const buffer_iter_t *const iter)
 {
   return iter->line;
+}
+
+
+size_t chars_in_line(const buffer_iter_t *const iter)
+{
+  return iter->current->line.used;
+}
+
+
+bool is_last_line(const buffer_iter_t *const iter)
+{
+  return iter->next == NULL;
 }
 
 
@@ -241,6 +248,17 @@ error_t insert_character(line_t *const line, const char c, size_t ix)
     insert_character(line, c, ix) : grow_ret;
 }
 
+void delete_character(line_t *const line, size_t ix)
+{
+  if (ix) {
+    memmove(line->buffer + ix - 1,
+            line->buffer + ix,
+            line->used - ix);
+    line->buffer[line->used - 1] = '\0';
+    line->used--;
+  }
+}
+
 
 void move_iter_down_line(buffer_iter_t *const iter)
 {
@@ -274,16 +292,30 @@ void move_iter_to_top(buffer_iter_t *const iter)
     move_iter_up_line(iter);
 }
 
-void move_iter_back_char(buffer_iter_t *const iter) {
+
+void move_iter_back_char(buffer_iter_t *const iter)
+{
   if (iter->column > 0) {
     iter->column--;
   }
 }
 
-void move_iter_forward_char(buffer_iter_t *const iter) {
+
+void move_iter_forward_char(buffer_iter_t *const iter)
+{
   iter->column = min(iter->column + 1, iter->current->line.used);
 }
 
-void move_to_beginning_of_line(buffer_iter_t *const iter) {
+
+void move_to_beginning_of_line(buffer_iter_t *const iter)
+{
   iter->column = 0;
+}
+
+
+void delete_character_at_point(buffer_iter_t *const iter)
+{
+  size_t ix = column(iter);
+  move_iter_back_char(iter);
+  delete_character(&iter->current->line, ix);
 }
