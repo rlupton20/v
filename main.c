@@ -12,6 +12,7 @@
 typedef struct render_params_t {
   size_t height;
   size_t width;
+  size_t point_locator;
 } render_params_t;
 
 
@@ -41,6 +42,10 @@ void open_line(buffer_iter_t *const iter);
 /* Functions for resolving rendering questions */
 size_t terminal_lines(const render_params_t *const params,
                       const buffer_iter_t *const iter);
+size_t locate_start_of_render(const render_params_t *const params,
+                              buffer_iter_t *render_point);
+void move_cursor_up(editor_state_t *const state);
+void move_cursor_down(editor_state_t *const state);
 
 
 int main(int argv, char *argc[])
@@ -81,14 +86,13 @@ void render(const editor_state_t *const state)
 {
   buffer_iter_t *render_point;
   copy_buffer_iter(state->point, &render_point);
-  move_iter_to_top(render_point);
 
   size_t row = 0;
 
   clear();
   render_modeline(state);
 
-  size_t current = 0;
+  size_t current = locate_start_of_render(&state->render_params, render_point);
   while (true) {
     mvprintw(current, 0, "%s", current_line(render_point));
 
@@ -115,10 +119,11 @@ void render(const editor_state_t *const state)
 void render_modeline(const editor_state_t *const state)
 {
   attron(A_BOLD);
-  mvprintw(state->render_params.height - 2, 0, "%d:%d\t%s",
+  mvprintw(state->render_params.height - 2, 0, "%d:%d\t%s\t%u",
            line_number(state->point),
            column(state->point),
-           state->mode->name);
+           state->mode->name,
+           state->render_params.point_locator);
   attroff(A_BOLD);
 }
 
@@ -178,16 +183,18 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
     move_iter_back_char(state->point);
     break;
   case 'j':
-    move_iter_down_line(state->point);
+    move_cursor_down(state);
     break;
   case 'k':
-    move_iter_up_line(state->point);
+    move_cursor_up(state);
     break;
   case 'l':
     move_iter_forward_char(state->point);
     break;
   case 'o':
     open_line(state->point);
+    // TODO tidy
+    move_cursor_down(state);
     switch_mode(state, INSERT);
     break;
   case 'q':
@@ -203,7 +210,7 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
 void open_line(buffer_iter_t *const iter)
 {
   append_line_at_point(iter);
-  move_iter_down_line(iter);
+  /* move_iter_down_line(iter); */
   move_to_beginning_of_line(iter);
 }
 
@@ -227,4 +234,60 @@ size_t terminal_lines(const render_params_t *const params,
                       const buffer_iter_t *const iter)
 {
   return chars_in_line(iter) / params->width + 1;
+}
+
+
+size_t locate_start_of_render(const render_params_t *const params,
+                              buffer_iter_t *render_point)
+{
+  size_t locator = params->point_locator;
+
+  while (!is_first_line(render_point)) {
+    move_iter_up_line(render_point);
+
+    if (terminal_lines(params, render_point) > locator) {
+      break;
+    }
+
+    locator -= terminal_lines(params, render_point);
+  }
+
+  if (!is_first_line(render_point)) {
+    move_iter_down_line(render_point);
+  }
+
+  return locator;
+}
+
+
+void move_cursor_up(editor_state_t *const state)
+{
+  if (!is_first_line(state->point)) {
+    move_iter_up_line(state->point);
+
+    const size_t lines_for_current =
+      terminal_lines(&state->render_params, state->point);
+
+    if (lines_for_current > state->render_params.point_locator) {
+      state->render_params.point_locator = 0;
+    } else {
+      state->render_params.point_locator -= lines_for_current;
+    }
+  }
+}
+
+
+void move_cursor_down(editor_state_t *const state)
+{
+  if (!is_last_line(state->point)) {
+    const size_t lines_for_current =
+      terminal_lines(&state->render_params, state->point);
+
+    // This needs a better bound
+    state->render_params.point_locator =
+      min(state->render_params.height - 3,
+          state->render_params.point_locator + lines_for_current);
+
+    move_iter_down_line(state->point);
+  }
 }

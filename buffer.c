@@ -153,6 +153,12 @@ bool is_last_line(const buffer_iter_t *const iter)
 }
 
 
+bool is_first_line(const buffer_iter_t *const iter)
+{
+  return iter->previous == NULL;
+}
+
+
 /* Functions for handling buffer cells */
 
 buffer_cell_t* new_buffer_cell()
