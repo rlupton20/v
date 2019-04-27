@@ -9,16 +9,16 @@
 #include "mode.h"
 
 
-typedef struct window_params_t {
+typedef struct render_params_t {
   size_t height;
   size_t width;
-} window_params_t;
+} render_params_t;
 
 
 struct editor_state_t {
   buffer_iter_t *point;
   const mode_t *mode;
-  window_params_t win_params;
+  render_params_t render_params;
   bool terminate;
 };
 
@@ -36,8 +36,11 @@ void render_modeline(const editor_state_t *const state);
 /* Editor state functions */
 bool should_quit(const editor_state_t *const state);
 void switch_mode(editor_state_t *const state, editor_mode_t mode);
-
 void open_line(buffer_iter_t *const iter);
+
+/* Functions for resolving rendering questions */
+size_t terminal_lines(const render_params_t *const params,
+                      const buffer_iter_t *const iter);
 
 
 int main(int argv, char *argc[])
@@ -69,7 +72,7 @@ int main(int argv, char *argc[])
 
 error_t update(const event_t event, editor_state_t *const state)
 {
-  getmaxyx(stdscr, state->win_params.height, state->win_params.width);
+  getmaxyx(stdscr, state->render_params.height, state->render_params.width);
   return (state->mode->handler)(event, state);
 }
 
@@ -97,8 +100,8 @@ void render(const editor_state_t *const state)
       break;
     }
 
+    current += terminal_lines(&state->render_params, render_point);
     move_iter_down_line(render_point);
-    current++;
   }
 
   destroy_buffer_iter(render_point);
@@ -112,11 +115,10 @@ void render(const editor_state_t *const state)
 void render_modeline(const editor_state_t *const state)
 {
   attron(A_BOLD);
-  mvprintw(state->win_params.height - 2, 0, "%d:%d\t%s\t%d",
+  mvprintw(state->render_params.height - 2, 0, "%d:%d\t%s",
            line_number(state->point),
            column(state->point),
-           state->mode->name,
-           KEY_DC);
+           state->mode->name);
   attroff(A_BOLD);
 }
 
@@ -216,4 +218,13 @@ bool should_quit(const editor_state_t *const state)
 void switch_mode(editor_state_t *const state, editor_mode_t mode)
 {
   state->mode = get_mode_handle(mode);
+}
+
+
+/* Rendering questions */
+
+size_t terminal_lines(const render_params_t *const params,
+                      const buffer_iter_t *const iter)
+{
+  return chars_in_line(iter) / params->width + 1;
 }
