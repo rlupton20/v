@@ -37,7 +37,7 @@ void render_modeline(const editor_state_t *const state);
 /* Editor state functions */
 bool should_quit(const editor_state_t *const state);
 void switch_mode(editor_state_t *const state, editor_mode_t mode);
-void open_line(buffer_iter_t *const iter);
+void open_line(editor_state_t *const state);
 
 /* Functions for resolving rendering questions */
 size_t terminal_lines(const render_params_t *const params,
@@ -192,10 +192,7 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
     move_iter_forward_char(state->point);
     break;
   case 'o':
-    open_line(state->point);
-    // TODO tidy
-    move_cursor_down(state);
-    switch_mode(state, INSERT);
+    open_line(state);
     break;
   case 'q':
     state->terminate = true;
@@ -207,11 +204,12 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
 }
 
 
-void open_line(buffer_iter_t *const iter)
+void open_line(editor_state_t *const state)
 {
-  append_line_at_point(iter);
-  /* move_iter_down_line(iter); */
-  move_to_beginning_of_line(iter);
+  append_line_at_point(state->point);
+  move_cursor_down(state);
+  move_to_beginning_of_line(state->point);
+  switch_mode(state, INSERT);
 }
 
 
@@ -283,7 +281,7 @@ void move_cursor_down(editor_state_t *const state)
     const size_t lines_for_current =
       terminal_lines(&state->render_params, state->point);
 
-    // This needs a better bound
+    // TODO This needs a better bound
     state->render_params.point_locator =
       min(state->render_params.height - 3,
           state->render_params.point_locator + lines_for_current);
