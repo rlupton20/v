@@ -292,13 +292,6 @@ void move_iter_up_line(buffer_iter_t *const iter)
 }
 
 
-void move_iter_to_top(buffer_iter_t *const iter)
-{
-  while(iter->previous)
-    move_iter_up_line(iter);
-}
-
-
 void move_iter_back_char(buffer_iter_t *const iter)
 {
   if (iter->column > 0) {
