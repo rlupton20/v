@@ -1,7 +1,4 @@
 #include <ncurses.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdlib.h>
 
 #include "common.h"
