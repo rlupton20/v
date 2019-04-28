@@ -34,7 +34,7 @@ void render_modeline(const editor_state_t *const state);
 /* Editor state functions */
 bool should_quit(const editor_state_t *const state);
 void switch_mode(editor_state_t *const state, editor_mode_t mode);
-void open_line(editor_state_t *const state);
+error_t open_line(editor_state_t *const state);
 
 /* Functions for resolving rendering questions */
 size_t terminal_lines(const render_params_t *const params,
@@ -172,6 +172,7 @@ error_t insert_mode_handler(event_t event, struct editor_state_t *const state)
 
 error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
 {
+  error_t ret = SUCCESS;
   switch (event) {
   case 'i':
     switch_mode(state, INSERT);
@@ -189,7 +190,7 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
     move_iter_forward_char(state->point);
     break;
   case 'o':
-    open_line(state);
+    ret = open_line(state);
     break;
   case 'q':
     state->terminate = true;
@@ -197,16 +198,21 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
   default:
     break;
   }
-  return SUCCESS;
+  return ret;
 }
 
 
-void open_line(editor_state_t *const state)
+error_t open_line(editor_state_t *const state)
 {
-  append_line_at_point(state->point);
-  move_cursor_down(state);
-  move_to_beginning_of_line(state->point);
-  switch_mode(state, INSERT);
+  error_t ret = append_line_at_point(state->point);
+
+  if (ret == SUCCESS) {
+    move_cursor_down(state);
+    move_to_beginning_of_line(state->point);
+    switch_mode(state, INSERT);
+  }
+
+  return ret;
 }
 
 
