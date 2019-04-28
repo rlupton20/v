@@ -44,12 +44,16 @@ error_t allocate_line(line_t *const line);
 void deallocate_line(line_t *const line);
 error_t grow_buffer(line_t *const line);
 error_t insert_character(line_t *const line, const char c, const size_t ix);
+void delete_character(line_t *const line, size_t ix);
 
 
 xorptr_t encode_pair(const buffer_cell_t *const a, const buffer_cell_t *b);
 buffer_cell_t* decode_with(const xorptr_t encoded, const buffer_cell_t *v);
 
 
+/*****************************************************************************/
+/* Buffer lifecycle                                                          */
+/*****************************************************************************/
 buffer_iter_t* new_buffer()
 {
   buffer_iter_t* buffer = NULL;
@@ -96,33 +100,9 @@ error_t copy_buffer_iter(const buffer_iter_t *const src, buffer_iter_t **dst)
 }
 
 
-error_t append_line_at_point(buffer_iter_t *const iter) {
-  buffer_cell_t *new_cell = new_buffer_cell();
-
-  if (new_cell) {
-    new_cell->neighbours = encode_pair(iter->current, iter->next);
-    iter->current->neighbours = encode_pair(iter->previous, new_cell);
-
-    if (iter->next) {
-      const buffer_cell_t* nexts_next =
-        decode_with(iter->next->neighbours, iter->current);
-      iter->next->neighbours = encode_pair(new_cell, nexts_next);
-    }
-
-    iter->next = new_cell;
-
-  }
-
-  return new_cell ? SUCCESS : ALLOC_ERROR;
-}
-
-
-error_t insert_character_at_point(buffer_iter_t *const iter, char c)
-{
-  return insert_character(&iter->current->line, c, iter->column++);
-}
-
-
+/*****************************************************************************/
+/* Get information about the buffer                                          */
+/*****************************************************************************/
 char* current_line(const buffer_iter_t *const iter)
 {
   return iter->current->line.buffer;
@@ -158,114 +138,9 @@ bool is_first_line(const buffer_iter_t *const iter)
   return iter->previous == NULL;
 }
 
-
-/* Functions for handling buffer cells */
-
-buffer_cell_t* new_buffer_cell()
-{
-  buffer_cell_t *buffer_cell = calloc(sizeof(buffer_cell_t), 1);
-
-  if (buffer_cell) {
-    const error_t alloc_ret = allocate_line(&buffer_cell->line);
-    if (alloc_ret == SUCCESS) {
-      buffer_cell->neighbours = NULL;
-    } else {
-      free(buffer_cell);
-      buffer_cell = NULL;
-    }
-  }
-
-  return buffer_cell;
-}
-
-
-void destroy_buffer_cell(buffer_cell_t *const buffer_cell)
-{
-  deallocate_line(&buffer_cell->line);
-  free(buffer_cell);
-}
-
-
-xorptr_t encode_pair(const buffer_cell_t *const a, const buffer_cell_t *b)
-{
-  return (xorptr_t)((uintptr_t)a ^ (uintptr_t)b);
-}
-
-
-buffer_cell_t* decode_with(const xorptr_t encoded, const buffer_cell_t *v)
-{
-  return (buffer_cell_t *)((uintptr_t)encoded ^ (uintptr_t)v);
-}
-
-
-/* Functions for handling lines */
-
-error_t allocate_line(line_t *const line)
-{
-  line->buffer = calloc(sizeof(char), default_line_buffer_length + 1);
-
-  if (line->buffer) {
-    line->length = default_line_buffer_length;
-  }
-
-  return line->buffer ? SUCCESS : ALLOC_ERROR;
-}
-
-
-void deallocate_line(line_t *const line)
-{
-  free(line->buffer);
-  line->buffer = NULL;
-  line->length = 0;
-}
-
-
-error_t grow_buffer(line_t *const line)
-{
-  const size_t new_size =
-    min(max_buffer_growth + line->length, 2 * line->length);
-
-  char* const new_buffer = realloc(line->buffer, new_size + 1);
-  if (new_buffer) {
-    memset(new_buffer + line->length, 0, new_size - line->length + 1);
-    line->buffer = new_buffer;
-    line->length = new_size;
-  }
-
-  return new_buffer ? SUCCESS : ALLOC_ERROR;
-}
-
-
-error_t insert_character(line_t *const line, const char c, size_t ix)
-{
-  ix = min(ix, line->used);
-  if (line->used < line->length) {  // TODO Check
-    // Make space for the new character
-    memmove(line->buffer + ix + 1, line->buffer + ix, line->used - ix);
-
-    line->buffer[ix] = c;
-    line->used++;
-
-    return SUCCESS;
-  }
-
-  const error_t grow_ret = grow_buffer(line);
-  return grow_ret == SUCCESS ?
-    insert_character(line, c, ix) : grow_ret;
-}
-
-void delete_character(line_t *const line, size_t ix)
-{
-  if (ix) {
-    memmove(line->buffer + ix - 1,
-            line->buffer + ix,
-            line->used - ix);
-    line->buffer[line->used - 1] = '\0';
-    line->used--;
-  }
-}
-
-
+/*****************************************************************************/
+/* Buffer movement functions                                                 */
+/*****************************************************************************/
 void move_iter_down_line(buffer_iter_t *const iter)
 {
   if (iter->next) {
@@ -312,9 +187,153 @@ void move_to_beginning_of_line(buffer_iter_t *const iter)
 }
 
 
+/*****************************************************************************/
+/* Buffer movement functions                                                 */
+/*****************************************************************************/
+error_t append_line_at_point(buffer_iter_t *const iter) {
+  buffer_cell_t *new_cell = new_buffer_cell();
+
+  if (new_cell) {
+    new_cell->neighbours = encode_pair(iter->current, iter->next);
+    iter->current->neighbours = encode_pair(iter->previous, new_cell);
+
+    if (iter->next) {
+      const buffer_cell_t* nexts_next =
+        decode_with(iter->next->neighbours, iter->current);
+      iter->next->neighbours = encode_pair(new_cell, nexts_next);
+    }
+
+    iter->next = new_cell;
+
+  }
+
+  return new_cell ? SUCCESS : ALLOC_ERROR;
+}
+
+
+error_t insert_character_at_point(buffer_iter_t *const iter, char c)
+{
+  return insert_character(&iter->current->line, c, iter->column++);
+}
+
+
 void delete_character_at_point(buffer_iter_t *const iter)
 {
   size_t ix = column(iter);
   move_iter_back_char(iter);
   delete_character(&iter->current->line, ix);
+}
+
+/*****************************************************************************/
+/* Helper functions and intermediate structures                              */
+/*****************************************************************************/
+
+/* ------------------------------------------------------------------------- */
+/* Buffer cell lifecycle and management                                      */
+/* ------------------------------------------------------------------------- */
+buffer_cell_t* new_buffer_cell()
+{
+  buffer_cell_t *buffer_cell = calloc(sizeof(buffer_cell_t), 1);
+
+  if (buffer_cell) {
+    const error_t alloc_ret = allocate_line(&buffer_cell->line);
+    if (alloc_ret == SUCCESS) {
+      buffer_cell->neighbours = NULL;
+    } else {
+      free(buffer_cell);
+      buffer_cell = NULL;
+    }
+  }
+
+  return buffer_cell;
+}
+
+void destroy_buffer_cell(buffer_cell_t *const buffer_cell)
+{
+  deallocate_line(&buffer_cell->line);
+  free(buffer_cell);
+}
+
+
+error_t allocate_line(line_t *const line)
+{
+  line->buffer = calloc(sizeof(char), default_line_buffer_length + 1);
+
+  if (line->buffer) {
+    line->length = default_line_buffer_length;
+  }
+
+  return line->buffer ? SUCCESS : ALLOC_ERROR;
+}
+
+
+void deallocate_line(line_t *const line)
+{
+  free(line->buffer);
+  line->buffer = NULL;
+  line->length = 0;
+}
+
+
+error_t grow_buffer(line_t *const line)
+{
+  const size_t new_size =
+    min(max_buffer_growth + line->length, 2 * line->length);
+
+  char* const new_buffer = realloc(line->buffer, new_size + 1);
+  if (new_buffer) {
+    memset(new_buffer + line->length, 0, new_size - line->length + 1);
+    line->buffer = new_buffer;
+    line->length = new_size;
+  }
+
+  return new_buffer ? SUCCESS : ALLOC_ERROR;
+}
+
+
+/* ------------------------------------------------------------------------- */
+/* Buffer cell character operations                                          */
+/* ------------------------------------------------------------------------- */
+error_t insert_character(line_t *const line, const char c, size_t ix)
+{
+  ix = min(ix, line->used);
+  if (line->used < line->length) {  // TODO Check
+    // Make space for the new character
+    memmove(line->buffer + ix + 1, line->buffer + ix, line->used - ix);
+
+    line->buffer[ix] = c;
+    line->used++;
+
+    return SUCCESS;
+  }
+
+  const error_t grow_ret = grow_buffer(line);
+  return grow_ret == SUCCESS ?
+    insert_character(line, c, ix) : grow_ret;
+}
+
+void delete_character(line_t *const line, size_t ix)
+{
+  if (ix) {
+    memmove(line->buffer + ix - 1,
+            line->buffer + ix,
+            line->used - ix);
+    line->buffer[line->used - 1] = '\0';
+    line->used--;
+  }
+}
+
+
+/* ------------------------------------------------------------------------- */
+/* Buffer cell encoding functions                                            */
+/* ------------------------------------------------------------------------- */
+xorptr_t encode_pair(const buffer_cell_t *const a, const buffer_cell_t *b)
+{
+  return (xorptr_t)((uintptr_t)a ^ (uintptr_t)b);
+}
+
+
+buffer_cell_t* decode_with(const xorptr_t encoded, const buffer_cell_t *v)
+{
+  return (buffer_cell_t *)((uintptr_t)encoded ^ (uintptr_t)v);
 }
