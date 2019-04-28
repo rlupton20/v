@@ -155,6 +155,8 @@ void destroy_editor_state(editor_state_t *state)
 
 error_t insert_mode_handler(event_t event, struct editor_state_t *const state)
 {
+  error_t ret = SUCCESS;
+
   switch (event) {
   case KEY_ESCAPE:
     switch_mode(state, NORMAL);
@@ -163,16 +165,18 @@ error_t insert_mode_handler(event_t event, struct editor_state_t *const state)
     delete_character_at_point(state->point);
     break;
   default:
-    return insert_character_at_point(state->point, event);
+    ret = insert_character_at_point(state->point, event);
     break;
   }
-  return SUCCESS;
+
+  return ret;
 }
 
 
 error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
 {
   error_t ret = SUCCESS;
+
   switch (event) {
   case 'i':
     switch_mode(state, INSERT);
@@ -198,6 +202,7 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
   default:
     break;
   }
+
   return ret;
 }
 
