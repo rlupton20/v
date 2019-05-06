@@ -10,7 +10,8 @@ typedef enum editor_mode_t {
 
 
 typedef error_t (mode_handler_t)(event_t event,
-                                 struct editor_state_t *const state);
+                                 struct editor_state_t *const state,
+                                 render_params_t *const render_params);
 
 
 typedef struct mode_t {

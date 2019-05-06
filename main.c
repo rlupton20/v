@@ -1,5 +1,4 @@
 #include <ncurses.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "common.h"
@@ -7,17 +6,9 @@
 #include "mode.h"
 
 
-typedef struct render_params_t {
-  size_t height;
-  size_t width;
-  size_t point_locator;
-} render_params_t;
-
-
 struct editor_state_t {
   buffer_iter_t *point;
   const mode_t *mode;
-  render_params_t render_params;
   bool terminate;
 };
 
@@ -30,23 +21,23 @@ error_t write_buffer_to_disk(buffer_iter_t *const iter, const char *const filena
 
 
 /* Functions for running the editor */
-error_t update(const event_t event, editor_state_t *const state);
-void render(const editor_state_t *const state);
-void render_modeline(const editor_state_t *const state);
-void get_render_params(render_params_t* const params);
+error_t update(const event_t event, editor_state_t *const state, render_params_t *const render_params);
+void render(const editor_state_t *const state, const render_params_t *const params);
+void render_modeline(const editor_state_t *const state, const render_params_t *const render_params);
+render_params_t get_render_params();
+void update_render_params(render_params_t *const render_params);
 
 /* Editor state functions */
 bool should_quit(const editor_state_t *const state);
 void switch_mode(editor_state_t *const state, editor_mode_t mode);
-error_t open_line(editor_state_t *const state);
+error_t open_line(editor_state_t *const state, render_params_t *const render_params);
 
 /* Functions for resolving rendering questions */
-size_t terminal_lines(const render_params_t *const params,
-                      const buffer_iter_t *const iter);
+size_t terminal_lines(size_t terminal_width, const buffer_iter_t *const iter);
 size_t locate_start_of_render(const render_params_t *const params,
                               buffer_iter_t *render_point);
-void move_cursor_up(editor_state_t *const state);
-void move_cursor_down(editor_state_t *const state);
+void move_cursor_up(editor_state_t *const state, render_params_t *const render_params);
+void move_cursor_down(editor_state_t *const state, render_params_t *const render_params);
 
 
 int main(int argc, char *argv[])
@@ -68,16 +59,18 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  render(state);
+  render_params_t render_params = get_render_params();
 
-  while (!should_quit(state)) {
+  do {
+    render(state, &render_params);
+
     const event_t event = getch();
-    if (update(event, state) != SUCCESS) {
+
+    if (update(event, state, &render_params) != SUCCESS) {
       endwin();
       exit(1);
     }
-    render(state);
-  }
+  } while (!should_quit(state));
 
   endwin();
   destroy_editor_state(state);
@@ -86,20 +79,26 @@ int main(int argc, char *argv[])
 }
 
 
-error_t update(const event_t event, editor_state_t *const state)
+error_t update(const event_t event, editor_state_t *const state, render_params_t *const render_params)
 {
-  get_render_params(&state->render_params);
-  return (state->mode->handler)(event, state);
+  return (state->mode->handler)(event, state, render_params);
 }
 
 
-void get_render_params(render_params_t* const params)
+render_params_t get_render_params()
 {
-  getmaxyx(stdscr, params->height, params->width);
+  render_params_t params = {0};
+  update_render_params(&params);
+  return params;
+}
+
+void update_render_params(render_params_t *const render_params)
+{
+  getmaxyx(stdscr, render_params->height, render_params->width);
 }
 
 
-void render(const editor_state_t *const state)
+void render(const editor_state_t *const state, const render_params_t *const render_params)
 {
   buffer_iter_t *render_point;
   copy_buffer_iter(state->point, &render_point);
@@ -107,9 +106,9 @@ void render(const editor_state_t *const state)
   size_t row = 0;
 
   clear();
-  render_modeline(state);
+  render_modeline(state, render_params);
 
-  size_t current = locate_start_of_render(&state->render_params, render_point);
+  size_t current = locate_start_of_render(render_params, render_point);
   while (true) {
     mvprintw(current, 0, "%s", current_line(render_point));
 
@@ -121,7 +120,7 @@ void render(const editor_state_t *const state)
       break;
     }
 
-    current += terminal_lines(&state->render_params, render_point);
+    current += terminal_lines(render_params->width, render_point);
     move_iter_down_line(render_point);
   }
 
@@ -133,14 +132,13 @@ void render(const editor_state_t *const state)
 }
 
 
-void render_modeline(const editor_state_t *const state)
+void render_modeline(const editor_state_t *const state, const render_params_t *const render_params)
 {
   attron(A_BOLD);
-  mvprintw(state->render_params.height - 2, 0, "%d:%d\t%s\t%u",
+  mvprintw(render_params->height - 2, 0, "%d:%d\t%s",
            line_number(state->point),
            column(state->point),
-           state->mode->name,
-           state->render_params.point_locator);
+           state->mode->name);
   attroff(A_BOLD);
 }
 
@@ -157,7 +155,6 @@ editor_state_t* new_editor_state()
       state->point = point;
       state->terminate = false;
       switch_mode(state, NORMAL);
-      get_render_params(&state->render_params);
     } else {
       destroy_buffer(buffer);
     }
@@ -260,7 +257,7 @@ void destroy_editor_state(editor_state_t *state)
 }
 
 
-error_t insert_mode_handler(event_t event, struct editor_state_t *const state)
+error_t insert_mode_handler(event_t event, struct editor_state_t *const state, render_params_t *const render_params)
 {
   error_t ret = SUCCESS;
 
@@ -280,7 +277,7 @@ error_t insert_mode_handler(event_t event, struct editor_state_t *const state)
 }
 
 
-error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
+error_t normal_mode_handler(event_t event, struct editor_state_t *const state, render_params_t *const render_params)
 {
   error_t ret = SUCCESS;
 
@@ -292,16 +289,16 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
     move_iter_back_char(state->point);
     break;
   case 'j':
-    move_cursor_down(state);
+    move_cursor_down(state, render_params);
     break;
   case 'k':
-    move_cursor_up(state);
+    move_cursor_up(state, render_params);
     break;
   case 'l':
     move_iter_forward_char(state->point);
     break;
   case 'o':
-    ret = open_line(state);
+    ret = open_line(state, render_params);
     break;
   case 'q':
     state->terminate = true;
@@ -314,12 +311,12 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state)
 }
 
 
-error_t open_line(editor_state_t *const state)
+error_t open_line(editor_state_t *const state, render_params_t *const render_params)
 {
   error_t ret = append_line_at_point(state->point);
 
   if (ret == SUCCESS) {
-    move_cursor_down(state);
+    move_cursor_down(state, render_params);
     move_to_beginning_of_line(state->point);
     switch_mode(state, INSERT);
   }
@@ -343,63 +340,61 @@ void switch_mode(editor_state_t *const state, editor_mode_t mode)
 
 /* Rendering questions */
 
-size_t terminal_lines(const render_params_t *const params,
-                      const buffer_iter_t *const iter)
+size_t terminal_lines(size_t terminal_width, const buffer_iter_t *const iter)
 {
-  return chars_in_line(iter) / params->width + 1;
+  return chars_in_line(iter) / terminal_width + 1;
 }
 
 
 size_t locate_start_of_render(const render_params_t *const params,
                               buffer_iter_t *render_point)
 {
-  size_t locator = params->point_locator;
-
+  size_t point_locator = params->point_locator;
   while (!is_first_line(render_point)) {
     move_iter_up_line(render_point);
 
-    if (terminal_lines(params, render_point) > locator) {
+    if (terminal_lines(params->width, render_point) > point_locator) {
       break;
     }
 
-    locator -= terminal_lines(params, render_point);
+    point_locator -= terminal_lines(params->width, render_point);
   }
 
   if (!is_first_line(render_point)) {
     move_iter_down_line(render_point);
   }
 
-  return locator;
+  return point_locator;
 }
 
 
-void move_cursor_up(editor_state_t *const state)
+void move_cursor_up(editor_state_t *const state, render_params_t *const render_params)
 {
   if (!is_first_line(state->point)) {
     move_iter_up_line(state->point);
 
     const size_t lines_for_current =
-      terminal_lines(&state->render_params, state->point);
+      terminal_lines(render_params->width, state->point);
 
-    if (lines_for_current > state->render_params.point_locator) {
-      state->render_params.point_locator = 0;
+    if (lines_for_current > render_params->point_locator) {
+      render_params->point_locator = 0;
     } else {
-      state->render_params.point_locator -= lines_for_current;
+      render_params->point_locator -= lines_for_current;
     }
   }
 }
 
 
-void move_cursor_down(editor_state_t *const state)
+void move_cursor_down(editor_state_t *const state, render_params_t *const render_params)
 {
   if (!is_last_line(state->point)) {
     const size_t lines_for_current =
-      terminal_lines(&state->render_params, state->point);
+      terminal_lines(render_params->width, state->point);
 
     // TODO This needs a better bound
-    state->render_params.point_locator =
-      min(state->render_params.height - 3,
-          state->render_params.point_locator + lines_for_current);
+    render_params->point_locator =
+      min(render_params->height - 3,
+          render_params->point_locator + lines_for_current);
 
     move_iter_down_line(state->point);
   }
