@@ -24,12 +24,14 @@ struct editor_state_t {
 /* Functions for working with editor state */
 editor_state_t* new_editor_state();
 void destroy_editor_state(editor_state_t *state);
+error_t read_file_into_editor(buffer_iter_t *const iter, const char *const filename);
 
 
 /* Functions for running the editor */
 error_t update(const event_t event, editor_state_t *const state);
 void render(const editor_state_t *const state);
 void render_modeline(const editor_state_t *const state);
+void get_render_params(render_params_t* const params);
 
 /* Editor state functions */
 bool should_quit(const editor_state_t *const state);
@@ -45,21 +47,31 @@ void move_cursor_up(editor_state_t *const state);
 void move_cursor_down(editor_state_t *const state);
 
 
-int main(int argv, char *argc[])
+int main(int argc, char *argv[])
 {
-  editor_state_t *state = new_editor_state();
-
-  if (!state) {
-    return 1;
-  }
+  const char *const filename = argc > 1 ? argv[1] : NULL;
 
   initscr();
   noecho();
+
+  editor_state_t *state = new_editor_state();
+
+  if (!state) {
+    endwin();
+    return 1;
+  }
+
+  if (filename && read_file_into_editor(state->point, filename) != SUCCESS) {
+    endwin();
+    return 1;
+  }
+
   render(state);
 
   while (!should_quit(state)) {
     const event_t event = getch();
     if (update(event, state) != SUCCESS) {
+      endwin();
       exit(1);
     }
     render(state);
@@ -74,8 +86,14 @@ int main(int argv, char *argc[])
 
 error_t update(const event_t event, editor_state_t *const state)
 {
-  getmaxyx(stdscr, state->render_params.height, state->render_params.width);
+  get_render_params(&state->render_params);
   return (state->mode->handler)(event, state);
+}
+
+
+void get_render_params(render_params_t* const params)
+{
+  getmaxyx(stdscr, params->height, params->width);
 }
 
 
@@ -137,11 +155,47 @@ editor_state_t* new_editor_state()
       state->point = point;
       state->terminate = false;
       switch_mode(state, NORMAL);
+      get_render_params(&state->render_params);
     } else {
       destroy_buffer(buffer);
     }
   }
   return state;
+}
+
+
+error_t read_file_into_editor(buffer_iter_t* const iter, const char* const filename)
+{
+  FILE *fp = NULL;
+  char c;
+  error_t ret = SUCCESS;
+
+  fp = fopen(filename, "r");
+  if (!fp) {
+    printf("Cannot open file: %s\n", filename);
+    return READ_ERROR;
+  }
+
+  while ((c = fgetc(fp)) != EOF && ret == SUCCESS) {
+    switch (c) {
+    case '\n':
+      ret = append_line_at_point(iter);
+      move_iter_down_line(iter);
+      move_to_beginning_of_line(iter);
+      break;
+    default:
+      ret = insert_character_at_point(iter, c);
+      break;
+    }
+  }
+
+  fclose(fp);
+
+  while (!is_first_line(iter)) {
+    move_iter_up_line(iter);
+  }
+
+  return SUCCESS;
 }
 
 

@@ -8,7 +8,8 @@
 
 typedef enum error_t {
                       SUCCESS = 0,
-                      ALLOC_ERROR = 1
+                      ALLOC_ERROR = 1,
+                      READ_ERROR = 2
 } error_t;
 
 
