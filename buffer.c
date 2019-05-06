@@ -45,6 +45,8 @@ xorptr_t encode_pair(const buffer_cell_t *const a, const buffer_cell_t *b);
 buffer_cell_t* decode_with(const xorptr_t encoded, const buffer_cell_t *v);
 
 // Line helper function declarations
+error_t allocate_line(line_t *const line);
+void deallocate_line(line_t *const line);
 error_t grow_buffer(line_t *const line);
 
 
