@@ -101,7 +101,7 @@ void render(const editor_state_t *const state, const render_params_t *const rend
   render_modeline(state, render_params);
 
   size_t current = locate_start_of_render(render_params, render_point);
-  while (true && current + 2 < render_params->height) {
+  while (current + 2 < render_params->height) {
     mvprintw(current, 0, "%s", current_line(render_point));
 
     if (current_line(render_point) == current_line(state->point)) {
