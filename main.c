@@ -1,5 +1,6 @@
 #include <ncurses.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common.h"
 #include "buffer.h"
@@ -25,6 +26,7 @@ struct editor_state_t {
 editor_state_t* new_editor_state();
 void destroy_editor_state(editor_state_t *state);
 error_t read_file_into_editor(buffer_iter_t *const iter, const char *const filename);
+error_t write_buffer_to_disk(buffer_iter_t *const iter, const char *const filename);
 
 
 /* Functions for running the editor */
@@ -196,6 +198,57 @@ error_t read_file_into_editor(buffer_iter_t* const iter, const char* const filen
   }
 
   return SUCCESS;
+}
+
+
+error_t write_buffer_to_disk(buffer_iter_t *const iter, const char *const filename)
+{
+  FILE *fp = NULL;
+  error_t ret = SUCCESS;
+
+  size_t len = strlen(filename);
+  char *swap_file = calloc(sizeof(char), len + 4);
+
+  if (!swap_file) {
+    return ALLOC_ERROR;
+  }
+
+  memcpy(swap_file, filename, len);
+  strncat(swap_file, ".swp", len + 4);
+
+  fp = fopen(swap_file, "w");
+
+  if (fp == NULL) {
+    return WRITE_ERROR;
+  }
+
+  buffer_iter_t *write_iter = NULL;
+  ret = copy_buffer_iter(iter, &write_iter);
+
+  if (ret != SUCCESS) {
+    return ALLOC_ERROR;
+  }
+
+  while (!is_first_line(write_iter)) {
+    move_iter_up_line(write_iter);
+  }
+
+  while (true) {
+    fprintf(fp, "%s\n", current_line(write_iter));
+    if (is_last_line(write_iter)) {
+      break;
+    }
+    move_iter_down_line(write_iter);
+  }
+
+  destroy_buffer_iter(write_iter);
+  fclose(fp);
+
+  rename(swap_file, filename);
+
+  free(swap_file);
+
+  return ret;
 }
 
 

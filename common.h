@@ -9,7 +9,8 @@
 typedef enum error_t {
                       SUCCESS = 0,
                       ALLOC_ERROR = 1,
-                      READ_ERROR = 2
+                      READ_ERROR = 2,
+                      WRITE_ERROR = 3
 } error_t;
 
 
