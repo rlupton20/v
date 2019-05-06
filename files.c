@@ -56,6 +56,7 @@ error_t write_buffer_to_disk(buffer_iter_t *const iter, const char *const filena
   fp = fopen(swap_file, "w");
 
   if (fp == NULL) {
+    free(swap_file);
     return WRITE_ERROR;
   }
 
@@ -63,6 +64,8 @@ error_t write_buffer_to_disk(buffer_iter_t *const iter, const char *const filena
   ret = copy_buffer_iter(iter, &write_iter);
 
   if (ret != SUCCESS) {
+    free(swap_file);
+    fclose(fp);
     return ALLOC_ERROR;
   }
 
@@ -87,4 +90,3 @@ error_t write_buffer_to_disk(buffer_iter_t *const iter, const char *const filena
 
   return ret;
 }
-
