@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "buffer.h"
+#include "line.h"
 
 
 // The most a line buffer can expand by
@@ -14,11 +15,11 @@ typedef struct buffer_cell_t buffer_cell_t;
 typedef buffer_cell_t* xorptr_t;
 
 
-typedef struct line_t {
+struct line_t {
   size_t used;
   size_t length;
   char *buffer;
-} line_t;
+};
 
 
 struct buffer_cell_t {
@@ -36,19 +37,15 @@ struct buffer_iter_t {
 };
 
 
+// Buffer helper function declarations
 buffer_cell_t* new_buffer_cell();
 void destroy_buffer_cell(buffer_cell_t *const buffer_cell);
 
-
-error_t allocate_line(line_t *const line);
-void deallocate_line(line_t *const line);
-error_t grow_buffer(line_t *const line);
-error_t insert_character(line_t *const line, const char c, const size_t ix);
-void delete_character(line_t *const line, size_t ix);
-
-
 xorptr_t encode_pair(const buffer_cell_t *const a, const buffer_cell_t *b);
 buffer_cell_t* decode_with(const xorptr_t encoded, const buffer_cell_t *v);
+
+// Line helper function declarations
+error_t grow_buffer(line_t *const line);
 
 
 /*****************************************************************************/
