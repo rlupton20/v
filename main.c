@@ -139,13 +139,12 @@ void render_modeline(const editor_state_t *const state, const render_params_t *c
 editor_state_t* new_editor_state()
 {
   editor_state_t *state = NULL;
-  buffer_iter_t *const buffer = new_buffer();
-  buffer_iter_t *point = NULL;
+  buffer_iter_t *buffer = new_buffer();
 
-  if (buffer && copy_buffer_iter(buffer, &point) == SUCCESS) {
+  if (buffer) {
     state = calloc(sizeof(editor_state_t), 1);
     if (state) {
-      state->point = point;
+      state->point = buffer;
       state->terminate = false;
       switch_mode(state, NORMAL);
     } else {
