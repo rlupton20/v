@@ -24,7 +24,6 @@ error_t write_buffer_to_disk(buffer_iter_t *const iter, const char *const filena
 error_t update(const event_t event, editor_state_t *const state, render_params_t *const render_params);
 void render(const editor_state_t *const state, const render_params_t *const params);
 void render_modeline(const editor_state_t *const state, const render_params_t *const render_params);
-render_params_t get_render_params();
 void update_render_params(render_params_t *const render_params);
 
 /* Editor state functions */
@@ -59,9 +58,10 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  render_params_t render_params = get_render_params();
+  render_params_t render_params = {0};
 
   do {
+    update_render_params(&render_params);
     render(state, &render_params);
 
     const event_t event = getch();
@@ -85,13 +85,6 @@ error_t update(const event_t event, editor_state_t *const state, render_params_t
 }
 
 
-render_params_t get_render_params()
-{
-  render_params_t params = {0};
-  update_render_params(&params);
-  return params;
-}
-
 void update_render_params(render_params_t *const render_params)
 {
   getmaxyx(stdscr, render_params->height, render_params->width);
@@ -109,7 +102,7 @@ void render(const editor_state_t *const state, const render_params_t *const rend
   render_modeline(state, render_params);
 
   size_t current = locate_start_of_render(render_params, render_point);
-  while (true) {
+  while (true && current + 2 < render_params->height) {
     mvprintw(current, 0, "%s", current_line(render_point));
 
     if (current_line(render_point) == current_line(state->point)) {
