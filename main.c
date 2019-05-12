@@ -9,6 +9,7 @@
 
 struct editor_state_t {
   buffer_iter_t *point;
+  buffer_iter_t *command_buffer;
   const mode_t *mode;
   bool terminate;
 };
@@ -23,6 +24,7 @@ void destroy_editor_state(editor_state_t *state);
 error_t update(const event_t event, editor_state_t *const state, render_params_t *const render_params);
 void render(const editor_state_t *const state, const render_params_t *const params);
 void render_modeline(const editor_state_t *const state, const render_params_t *const render_params);
+void render_command_buffer(const editor_state_t *const state, const render_params_t *const render_params);
 void update_render_params(render_params_t *const render_params);
 
 /* Editor state functions */
@@ -118,6 +120,8 @@ void render(const editor_state_t *const state, const render_params_t *const rend
 
   destroy_buffer_iter(render_point);
 
+  render_command_buffer(state, render_params);
+
   move(row, column(state->point));
 
   refresh();
@@ -135,6 +139,13 @@ void render_modeline(const editor_state_t *const state, const render_params_t *c
 }
 
 
+void render_command_buffer(const editor_state_t *const state, const render_params_t *const render_params)
+{
+  mvprintw(render_params->height - 1, 0, "%s",
+           current_line(state->command_buffer));
+}
+
+
 editor_state_t* new_editor_state()
 {
   editor_state_t *state = NULL;
@@ -145,11 +156,22 @@ editor_state_t* new_editor_state()
     if (state) {
       state->point = buffer;
       state->terminate = false;
+      state->command_buffer = new_buffer();
       switch_mode(state, NORMAL);
-    } else {
-      destroy_buffer(buffer);
     }
   }
+
+  if (!state) {
+    destroy_buffer(buffer);
+    state = NULL;
+  }
+
+  if (state && !state->command_buffer) {
+    destroy_buffer(buffer);
+    free(state);
+    state = NULL;
+  }
+
   return state;
 }
 
@@ -158,6 +180,7 @@ void destroy_editor_state(editor_state_t *state)
 {
   state->point = NULL;
   destroy_buffer(state->point);
+  destroy_buffer(state->command_buffer);
   free(state);
 }
 
@@ -190,6 +213,10 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state, r
   case 'i':
     switch_mode(state, INSERT);
     break;
+  case ':':
+    ret = insert_character_at_point(state->command_buffer, ':');
+    switch_mode(state, COMMAND);
+    break;
   case 'h':
     move_iter_back_char(state->point);
     break;
@@ -209,6 +236,23 @@ error_t normal_mode_handler(event_t event, struct editor_state_t *const state, r
     state->terminate = true;
     break;
   default:
+    break;
+  }
+
+  return ret;
+}
+
+
+error_t command_mode_handler(event_t event, struct editor_state_t *const state, render_params_t *const render_params)
+{
+  error_t ret = SUCCESS;
+
+  switch (event) {
+  case KEY_ESCAPE:
+    switch_mode(state, NORMAL);
+    break;
+  default:
+    ret = insert_character_at_point(state->command_buffer, event);
     break;
   }
 

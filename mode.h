@@ -5,7 +5,8 @@
 
 typedef enum editor_mode_t {
                             NORMAL,
-                            INSERT
+                            INSERT,
+                            COMMAND
 } editor_mode_t;
 
 
