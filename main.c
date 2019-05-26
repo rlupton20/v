@@ -250,6 +250,7 @@ error_t command_mode_handler(event_t event, struct editor_state_t *const state, 
 
   switch (event) {
   case KEY_ESCAPE:
+    clear_line_at_point(state->command_buffer);
     switch_mode(state, NORMAL);
     break;
   case '\n':
@@ -355,7 +356,8 @@ void move_cursor_down(editor_state_t *const state, render_params_t *const render
 
 void execute_command(editor_state_t *const state) {
   const char *cmd = current_line(state->command_buffer);
-  while (*cmd != '\0') {
+  cmd++; // Skip initial ':'
+  while (*cmd != '\0' && !state->terminate) {
     switch (*cmd) {
     case 'q':
       state->terminate = true;
