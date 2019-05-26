@@ -49,6 +49,7 @@ void deallocate_line(line_t *const line);
 error_t insert_character(line_t *const line, const char c, const size_t ix);
 void delete_character(line_t *const line, size_t ix);
 error_t grow_buffer(line_t *const line);
+void clear_line(line_t *const line);
 
 
 /*****************************************************************************/
@@ -224,6 +225,11 @@ void delete_character_at_point(buffer_iter_t *const iter)
   delete_character(&iter->current->line, ix);
 }
 
+void clear_line_at_point(buffer_iter_t *const iter)
+{
+  clear_line(&iter->current->line);
+}
+
 /*****************************************************************************/
 /* Helper functions and intermediate structures                              */
 /*****************************************************************************/
@@ -321,6 +327,13 @@ void delete_character(line_t *const line, size_t ix)
     line->buffer[line->used - 1] = '\0';
     line->used--;
   }
+}
+
+
+void clear_line(line_t *const line)
+{
+  memset(line->buffer, 0, line->length);
+  line->used = 0;
 }
 
 

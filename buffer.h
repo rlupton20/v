@@ -57,3 +57,4 @@ void move_to_beginning_of_line(buffer_iter_t *const iter);
 error_t append_line_at_point(buffer_iter_t *const iter);
 error_t insert_character_at_point(buffer_iter_t *const iter, const char c);
 void delete_character_at_point(buffer_iter_t *const iter);
+void clear_line_at_point(buffer_iter_t *const iter);

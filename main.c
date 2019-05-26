@@ -355,6 +355,8 @@ void move_cursor_down(editor_state_t *const state, render_params_t *const render
   }
 }
 
+
 void execute_command(editor_state_t *const state) {
+  clear_line_at_point(state->command_buffer);
   switch_mode(state, NORMAL);
 }
