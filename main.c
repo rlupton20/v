@@ -369,6 +369,7 @@ void execute_command(editor_state_t *const state) {
       if (state->filename) {
         write_buffer_to_disk(state->point, state->filename);
       }
+      break;
     default:
       break;
     }
