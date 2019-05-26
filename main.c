@@ -11,12 +11,13 @@ struct editor_state_t {
   buffer_iter_t *point;
   buffer_iter_t *command_buffer;
   const mode_t *mode;
+  const char *filename;
   bool terminate;
 };
 
 
 /* Functions for working with editor state */
-editor_state_t* new_editor_state();
+editor_state_t* new_editor_state(const char *const filename);
 void destroy_editor_state(editor_state_t *state);
 
 
@@ -48,7 +49,7 @@ int main(int argc, char *argv[])
   initscr();
   noecho();
 
-  editor_state_t *state = new_editor_state();
+  editor_state_t *state = new_editor_state(filename);
 
   if (!state) {
     endwin();
@@ -147,7 +148,7 @@ void render_command_buffer(const editor_state_t *const state, const render_param
 }
 
 
-editor_state_t* new_editor_state()
+editor_state_t* new_editor_state(const char *const filename)
 {
   editor_state_t *state = NULL;
   buffer_iter_t *buffer = new_buffer();
@@ -172,6 +173,8 @@ editor_state_t* new_editor_state()
     free(state);
     state = NULL;
   }
+
+  state->filename = filename;
 
   return state;
 }
@@ -362,6 +365,10 @@ void execute_command(editor_state_t *const state) {
     case 'q':
       state->terminate = true;
       break;
+    case 'w':
+      if (state->filename) {
+        write_buffer_to_disk(state->point, state->filename);
+      }
     default:
       break;
     }
@@ -370,3 +377,4 @@ void execute_command(editor_state_t *const state) {
   clear_line_at_point(state->command_buffer);
   switch_mode(state, NORMAL);
 }
+
