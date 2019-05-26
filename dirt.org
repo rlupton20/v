@@ -1,0 +1,5 @@
+#+TITLE: Dirt
+
+- Allocation functions have inconsistent APIs
+- Tabs are not rendered properly
+- =move_cursor_down= needs a better bound

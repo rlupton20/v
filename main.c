@@ -38,6 +38,7 @@ size_t locate_start_of_render(const render_params_t *const params,
                               buffer_iter_t *render_point);
 void move_cursor_up(editor_state_t *const state, render_params_t *const render_params);
 void move_cursor_down(editor_state_t *const state, render_params_t *const render_params);
+void execute_command(editor_state_t *const state);
 
 
 int main(int argc, char *argv[])
@@ -196,6 +197,9 @@ error_t insert_mode_handler(event_t event, struct editor_state_t *const state, r
   case 127: // TODO Why is this not KEY_BACKSPACE?
     delete_character_at_point(state->point);
     break;
+  case '\n':
+    ret = open_line(state, render_params);
+    break;
   default:
     ret = insert_character_at_point(state->point, event);
     break;
@@ -250,6 +254,9 @@ error_t command_mode_handler(event_t event, struct editor_state_t *const state, 
   switch (event) {
   case KEY_ESCAPE:
     switch_mode(state, NORMAL);
+    break;
+  case '\n':
+    execute_command(state);
     break;
   default:
     ret = insert_character_at_point(state->command_buffer, event);
@@ -340,11 +347,14 @@ void move_cursor_down(editor_state_t *const state, render_params_t *const render
     const size_t lines_for_current =
       terminal_lines(render_params->width, state->point);
 
-    // TODO This needs a better bound
     render_params->point_locator =
       min(render_params->height - 3,
           render_params->point_locator + lines_for_current);
 
     move_iter_down_line(state->point);
   }
+}
+
+void execute_command(editor_state_t *const state) {
+  switch_mode(state, NORMAL);
 }
