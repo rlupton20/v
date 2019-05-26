@@ -360,22 +360,26 @@ void move_cursor_down(editor_state_t *const state, render_params_t *const render
 void execute_command(editor_state_t *const state) {
   const char *cmd = current_line(state->command_buffer);
   cmd++; // Skip initial ':'
-  while (*cmd != '\0' && !state->terminate) {
+
+  while (*cmd != '\0' && !should_quit(state)) {
     switch (*cmd) {
+
     case 'q':
       state->terminate = true;
       break;
+
     case 'w':
       if (state->filename) {
         write_buffer_to_disk(state->point, state->filename);
       }
       break;
+
     default:
       break;
     }
     cmd++;
   }
+
   clear_line_at_point(state->command_buffer);
   switch_mode(state, NORMAL);
 }
-
