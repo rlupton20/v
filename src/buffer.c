@@ -36,25 +36,32 @@ struct buffer_iter_t
 // Buffer helper function declarations
 buffer_cell_t*
 new_buffer_cell();
+
 void
 destroy_buffer_cell(buffer_cell_t* const buffer_cell);
 
 xorptr_t
 encode_pair(const buffer_cell_t* const a, const buffer_cell_t* b);
+
 buffer_cell_t*
 decode_with(const xorptr_t encoded, const buffer_cell_t* v);
 
 // Line helper function declarations
 error_t
 allocate_line(line_t* const line);
+
 void
 deallocate_line(line_t* const line);
+
 error_t
 insert_character(line_t* const line, const char c, const size_t ix);
+
 void
 delete_character(line_t* const line, size_t ix);
+
 error_t
 grow_buffer(line_t* const line);
+
 void
 clear_line(line_t* const line);
 
@@ -96,7 +103,7 @@ destroy_buffer_iter(buffer_iter_t* buffer_iter)
 }
 
 error_t
-copy_buffer_iter(const buffer_iter_t* const src, buffer_iter_t** dst)
+copy_buffer_iter(const buffer_iter_t* const src, buffer_iter_t** const dst)
 {
   buffer_iter_t* copy = new_buffer();
   if (copy) {
@@ -349,13 +356,13 @@ clear_line(line_t* const line)
 /* Buffer cell encoding functions                                            */
 /* ------------------------------------------------------------------------- */
 xorptr_t
-encode_pair(const buffer_cell_t* const a, const buffer_cell_t* b)
+encode_pair(const buffer_cell_t* const a, const buffer_cell_t* const b)
 {
   return (xorptr_t)((uintptr_t)a ^ (uintptr_t)b);
 }
 
 buffer_cell_t*
-decode_with(const xorptr_t encoded, const buffer_cell_t* v)
+decode_with(const xorptr_t encoded, const buffer_cell_t* const v)
 {
   return (buffer_cell_t*)((uintptr_t)encoded ^ (uintptr_t)v);
 }
