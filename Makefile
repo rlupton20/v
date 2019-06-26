@@ -1,13 +1,23 @@
 APP=v
+INCLUDES=-Iinclude/
 LIBS=-lncursesw
 CFLAGS=-Wall -std=c11 -O2
+BUILDDIR=build/
+CC=gcc
 
-SRC_FILES=main.c buffer.c mode.c files.c
-HEADERS=common.h buffer.h mode.h files.h
+SRCS=$(wildcard src/*.c)
+OBJS=$(SRCS:src/%.c=build/%.o)
+
+.PHONY = all clean
+
+all: build/$(APP)
+
+build/$(APP): $(OBJS)
+	 	 $(CC) $(CFLAGS) $(INCLUDES) -o $@ -static $^ $(LIBS)
+
+build/%.o: src/%.c
+		@mkdir -p $(BUILDDIR)
+		$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
 
 clean:
-		rm $(APP)
-
-
-$(APP): $(HEADERS) $(SRC_FILES)
-	 	 gcc $(CFLAGS) -o $(APP) -static $(SRC_FILES) $(LIBS)
+		rm -rf build/
