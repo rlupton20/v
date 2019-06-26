@@ -3,10 +3,10 @@
 
 #include "files.h"
 
-
-error_t read_file_into_editor(buffer_iter_t* const iter, const char* const filename)
+error_t
+read_file_into_editor(buffer_iter_t* const iter, const char* const filename)
 {
-  FILE *fp = NULL;
+  FILE* fp = NULL;
   char c;
   error_t ret = SUCCESS;
 
@@ -17,14 +17,14 @@ error_t read_file_into_editor(buffer_iter_t* const iter, const char* const filen
 
   while ((c = fgetc(fp)) != EOF && ret == SUCCESS) {
     switch (c) {
-    case '\n':
-      ret = append_line_at_point(iter);
-      move_iter_down_line(iter);
-      move_to_beginning_of_line(iter);
-      break;
-    default:
-      ret = insert_character_at_point(iter, c);
-      break;
+      case '\n':
+        ret = append_line_at_point(iter);
+        move_iter_down_line(iter);
+        move_to_beginning_of_line(iter);
+        break;
+      default:
+        ret = insert_character_at_point(iter, c);
+        break;
     }
   }
 
@@ -37,14 +37,14 @@ error_t read_file_into_editor(buffer_iter_t* const iter, const char* const filen
   return SUCCESS;
 }
 
-
-error_t write_buffer_to_disk(buffer_iter_t *const iter, const char *const filename)
+error_t
+write_buffer_to_disk(buffer_iter_t* const iter, const char* const filename)
 {
-  FILE *fp = NULL;
+  FILE* fp = NULL;
   error_t ret = SUCCESS;
 
   size_t len = strlen(filename);
-  char *swap_file = calloc(sizeof(char), len + 4);
+  char* swap_file = calloc(sizeof(char), len + 4);
 
   if (!swap_file) {
     return ALLOC_ERROR;
@@ -60,7 +60,7 @@ error_t write_buffer_to_disk(buffer_iter_t *const iter, const char *const filena
     return WRITE_ERROR;
   }
 
-  buffer_iter_t *write_iter = NULL;
+  buffer_iter_t* write_iter = NULL;
   ret = copy_buffer_iter(iter, &write_iter);
 
   if (ret != SUCCESS) {

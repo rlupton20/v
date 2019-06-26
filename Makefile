@@ -19,5 +19,8 @@ build/%.o: src/%.c
 		@mkdir -p $(BUILDDIR)
 		$(CC) $(CFLAGS) $(INCLUDES) -c $^ -o $@
 
+format:
+			find -iname *.[hc] | xargs clang-format -style=file -i
+
 clean:
 		rm -rf build/
