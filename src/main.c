@@ -123,7 +123,7 @@ render(const editor_state_t* const state,
 
   size_t row = 0;
 
-  clear();
+  erase();
   render_modeline(state, render_params);
 
   size_t current = locate_start_of_render(render_params, render_point);
