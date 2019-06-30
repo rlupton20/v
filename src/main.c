@@ -1,62 +1,84 @@
 #include <ncurses.h>
 #include <string.h>
 
-#include "buffer.h"
-#include "common.h"
-#include "files.h"
-#include "mode.h"
+#include <buffer.h>
+#include <common.h>
+#include <files.h>
+#include <mode.h>
+#include <state.h>
 
-struct editor_state_t
-{
-  buffer_iter_t* point;
-  buffer_iter_t* command_buffer;
-  const mode_t* mode;
-  const char* filename;
-  bool terminate;
-};
-
-/* Functions for working with editor state */
-editor_state_t*
-new_editor_state(const char* const filename);
-void
-destroy_editor_state(editor_state_t* state);
-
-/* Functions for running the editor */
+/*
+ * Takes an event and updates the editor state accordingly.
+ */
 error_t
 update(const event_t event,
        editor_state_t* const state,
        render_params_t* const render_params);
+
+/*
+ * Render the current editor state to sceen.
+ */
 void
 render(const editor_state_t* const state, const render_params_t* const params);
+
+/*
+ * Render the modeline.
+ */
 void
 render_modeline(const editor_state_t* const state,
                 const render_params_t* const render_params);
+
+/*
+ * Render the command buffer.
+ */
 void
 render_command_buffer(const editor_state_t* const state,
                       const render_params_t* const render_params);
+
+/*
+ * Update the render parameters.
+ */
 void
 update_render_params(render_params_t* const render_params);
 
-/* Editor state functions */
-bool
-should_quit(const editor_state_t* const state);
-void
-switch_mode(editor_state_t* const state, editor_mode_t mode);
+/*
+ * Open a new line, and enter insert mode.
+ */
 error_t
 open_line(editor_state_t* const state, render_params_t* const render_params);
 
-/* Functions for resolving rendering questions */
+/*
+ * terminal_lines determines the number of lines on the screen the line
+ * at iter will use.
+ */
 size_t
 terminal_lines(size_t terminal_width, const buffer_iter_t* const iter);
+
+/*
+ * locate_start_of_render locates the line where the editor should
+ * start drawing to screen.
+ */
 size_t
 locate_start_of_render(const render_params_t* const params,
                        buffer_iter_t* render_point);
+
+/*
+ * Move the cursor up a line.
+ */
 void
 move_cursor_up(editor_state_t* const state,
                render_params_t* const render_params);
+
+/*
+ * Move the cursor down a line.
+ */
 void
 move_cursor_down(editor_state_t* const state,
                  render_params_t* const render_params);
+
+/*
+ * Execute the command in the command buffer.
+ */
 void
 execute_command(editor_state_t* const state);
 
@@ -173,47 +195,6 @@ render_command_buffer(const editor_state_t* const state,
     render_params->height - 1, 0, "%s", current_line(state->command_buffer));
 }
 
-editor_state_t*
-new_editor_state(const char* const filename)
-{
-  editor_state_t* state = NULL;
-  buffer_iter_t* buffer = new_buffer();
-
-  if (buffer) {
-    state = calloc(sizeof(editor_state_t), 1);
-    if (state) {
-      state->point = buffer;
-      state->terminate = false;
-      state->command_buffer = new_buffer();
-      switch_mode(state, NORMAL);
-    }
-  }
-
-  if (!state) {
-    destroy_buffer(buffer);
-    state = NULL;
-  }
-
-  if (state && !state->command_buffer) {
-    destroy_buffer(buffer);
-    free(state);
-    state = NULL;
-  }
-
-  state->filename = filename;
-
-  return state;
-}
-
-void
-destroy_editor_state(editor_state_t* state)
-{
-  state->point = NULL;
-  destroy_buffer(state->point);
-  destroy_buffer(state->command_buffer);
-  free(state);
-}
-
 error_t
 insert_mode_handler(event_t event,
                     struct editor_state_t* const state,
@@ -311,18 +292,6 @@ open_line(editor_state_t* const state, render_params_t* const render_params)
   }
 
   return ret;
-}
-
-bool
-should_quit(const editor_state_t* const state)
-{
-  return state->terminate;
-}
-
-void
-switch_mode(editor_state_t* const state, editor_mode_t mode)
-{
-  state->mode = get_mode_handle(mode);
 }
 
 /* Rendering questions */

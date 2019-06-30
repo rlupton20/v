@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "buffer.h"
+#include <buffer.h>
 
 // The most a line buffer can expand by
 const size_t default_line_buffer_length = 120;

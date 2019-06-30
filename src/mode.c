@@ -1,5 +1,5 @@
-#include "mode.h"
-#include "common.h"
+#include <mode.h>
+#include <common.h>
 
 static const mode_t normal_mode =
   (mode_t){ .name = "NORMAL", .handler = normal_mode_handler };

@@ -7,8 +7,9 @@
  *
  ****************************************************************************/
 
-#include "common.h"
 #include <stdbool.h>
+
+#include <common.h>
 
 typedef struct buffer_iter_t buffer_iter_t;
 
