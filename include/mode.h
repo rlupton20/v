@@ -21,3 +21,16 @@ typedef struct mode_t
 
 const mode_t*
 get_mode_handle(editor_mode_t mode);
+
+error_t
+insert_mode_handler(event_t event,
+                    editor_state_t* const state,
+                    render_params_t* const render_params);
+error_t
+normal_mode_handler(event_t event,
+                    editor_state_t* const state,
+                    render_params_t* const render_params);
+error_t
+command_mode_handler(event_t event,
+                     editor_state_t* const state,
+                     render_params_t* const render_params);

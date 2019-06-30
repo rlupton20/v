@@ -23,18 +23,3 @@ typedef struct render_params_t
 
 typedef int event_t;
 typedef struct editor_state_t editor_state_t;
-
-/* TODO Move */
-/* Mode handlers */
-error_t
-insert_mode_handler(event_t event,
-                    editor_state_t* const state,
-                    render_params_t* const render_params);
-error_t
-normal_mode_handler(event_t event,
-                    editor_state_t* const state,
-                    render_params_t* const render_params);
-error_t
-command_mode_handler(event_t event,
-                     editor_state_t* const state,
-                     render_params_t* const render_params);

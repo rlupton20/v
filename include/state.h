@@ -1,7 +1,7 @@
 #pragma once
 
-#include <common.h>
 #include <buffer.h>
+#include <common.h>
 #include <mode.h>
 
 /*
