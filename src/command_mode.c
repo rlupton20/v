@@ -9,9 +9,7 @@ void
 execute_command(editor_state_t* const state);
 
 error_t
-command_mode_handler(event_t event,
-                     struct editor_state_t* const state,
-                     render_params_t* const render_params)
+command_mode_handler(event_t event, struct editor_state_t* const state)
 {
   error_t ret = SUCCESS;
 

@@ -18,7 +18,7 @@ typedef struct render_params_t
 {
   size_t height;
   size_t width;
-  size_t point_locator;
+  size_t top_line;
 } render_params_t;
 
 typedef int event_t;
