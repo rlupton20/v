@@ -52,3 +52,33 @@ should_quit(const editor_state_t* const state)
 {
   return state->terminate;
 }
+
+error_t
+open_line(editor_state_t* const state)
+{
+  error_t ret = append_line_at_point(state->point);
+
+  if (ret == SUCCESS) {
+    move_cursor_down(state);
+    move_to_beginning_of_line(state->point);
+    switch_mode(state, INSERT);
+  }
+
+  return ret;
+}
+
+void
+move_cursor_up(editor_state_t* const state)
+{
+  if (!is_first_line(state->point)) {
+    move_iter_up_line(state->point);
+  }
+}
+
+void
+move_cursor_down(editor_state_t* const state)
+{
+  if (!is_last_line(state->point)) {
+    move_iter_down_line(state->point);
+  }
+}

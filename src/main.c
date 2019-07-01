@@ -1,5 +1,4 @@
 #include <ncurses.h>
-#include <string.h>
 
 #include <buffer.h>
 #include <common.h>
@@ -13,24 +12,6 @@
  */
 error_t
 update(const event_t event, editor_state_t* const state);
-
-/*
- * Open a new line, and enter insert mode.
- */
-error_t
-open_line(editor_state_t* const state);
-
-/*
- * Move the cursor up a line.
- */
-void
-move_cursor_up(editor_state_t* const state);
-
-/*
- * Move the cursor down a line.
- */
-void
-move_cursor_down(editor_state_t* const state);
 
 int
 main(int argc, char* argv[])
@@ -134,34 +115,4 @@ normal_mode_handler(event_t event, struct editor_state_t* const state)
   }
 
   return ret;
-}
-
-error_t
-open_line(editor_state_t* const state)
-{
-  error_t ret = append_line_at_point(state->point);
-
-  if (ret == SUCCESS) {
-    move_cursor_down(state);
-    move_to_beginning_of_line(state->point);
-    switch_mode(state, INSERT);
-  }
-
-  return ret;
-}
-
-void
-move_cursor_up(editor_state_t* const state)
-{
-  if (!is_first_line(state->point)) {
-    move_iter_up_line(state->point);
-  }
-}
-
-void
-move_cursor_down(editor_state_t* const state)
-{
-  if (!is_last_line(state->point)) {
-    move_iter_down_line(state->point);
-  }
 }

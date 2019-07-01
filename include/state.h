@@ -41,3 +41,22 @@ should_quit(const editor_state_t* const state);
  */
 void
 switch_mode(editor_state_t* const state, editor_mode_t mode);
+
+/*
+ * Open a new line, and enter insert mode.
+ */
+error_t
+open_line(editor_state_t* const state);
+
+/*
+ * Move the cursor up a line.
+ */
+void
+move_cursor_up(editor_state_t* const state);
+
+/*
+ * Move the cursor down a line.
+ */
+void
+move_cursor_down(editor_state_t* const state);
+
