@@ -77,7 +77,7 @@ render_modeline(const editor_state_t* const state,
                 const render_params_t* const render_params)
 {
   attron(A_BOLD);
-  mvprintw(render_params->height - 2,
+  mvprintw(render_params->height - modeline_lines,
            0,
            "%d:%d\t%s",
            line_number(state->point),
