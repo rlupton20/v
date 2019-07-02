@@ -1,12 +1,10 @@
 #include <ncurses.h>
 
-#include <render.h>
 #include <buffer.h>
+#include <render.h>
 #include <state.h>
 
-
 static const size_t modeline_lines = 2;
-
 
 /*
  * Render the modeline.
@@ -36,8 +34,6 @@ terminal_lines(size_t terminal_width, const buffer_iter_t* const iter);
 size_t
 locate_start_of_render(const render_params_t* const params,
                        buffer_iter_t* render_point);
-
-
 
 void
 render(const editor_state_t* const state, render_params_t* const render_params)

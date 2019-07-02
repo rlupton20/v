@@ -13,4 +13,3 @@ render(const editor_state_t* const state, render_params_t* const params);
  */
 void
 update_render_params(render_params_t* const render_params);
-

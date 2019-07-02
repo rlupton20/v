@@ -18,6 +18,9 @@ typedef struct mode_t
   mode_handler_t* const handler;
 } mode_t;
 
+/*
+ * Get a handle to the mode handler for a given mode
+ */
 const mode_t*
 get_mode_handle(editor_mode_t mode);
 

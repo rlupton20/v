@@ -59,4 +59,3 @@ move_cursor_up(editor_state_t* const state);
  */
 void
 move_cursor_down(editor_state_t* const state);
-

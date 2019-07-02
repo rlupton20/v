@@ -4,8 +4,8 @@
 #include <common.h>
 #include <files.h>
 #include <mode.h>
-#include <state.h>
 #include <render.h>
+#include <state.h>
 
 /*
  * Takes an event and updates the editor state accordingly.
